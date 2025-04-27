@@ -2,8 +2,6 @@ name: Publish
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -12,15 +10,27 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v3
         with:
           node-version: '20.x'
-      - run: npm install
-      - run: npm run build
-      - run: |
-          echo @bohdanbiliak:https://npm.pkg.github.com/ > build/.npmrc
-          echo '//npm.pkg.github.com/:_authToken=${NPM_TOKEN}' >> build/.npmrc
-      - run: npm publish
+          registry-url: https://npm.pkg.github.com
+
+      - name: Set up npm authentication
+        run: |
+          echo "@bohdanbiliak:registry=https://npm.pkg.github.com" > ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Publish package
+        run: npm publish
         working-directory: ./build
         env:
-          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
